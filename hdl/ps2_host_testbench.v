@@ -92,6 +92,7 @@ begin
     ps2_clk_r = #`PS2_PERIOD 0;
     ps2_clk_r = #`PS2_PERIOD 1;
   end
+  wait (ready);
   if ((bits != rx_data) | (error != expect_error)) begin
     $display("Failed: Frame:0x%x Rx:0x%x Err:%b", frame, rx_data, error);
   end
@@ -106,7 +107,6 @@ task transmitter_test;
 begin
   frame = 0;
   tx_data = bits;
-  wait (~busy)
   send_req = #(`SYS_PERIOD*2) 1;
   send_req = #(`SYS_PERIOD*2) 0;
   wait (~ps2_data);
@@ -115,6 +115,7 @@ begin
     frame = {frame[9:0], ps2_data};
     ps2_clk_r = #`PS2_PERIOD 1;
   end
+  wait (~busy);
   if (({bits[0],bits[1],bits[2],bits[3],bits[4],bits[5],bits[6],bits[7]} != frame[9:2]) |
       frame[10] | (~^frame[9:2] != frame[1]) | ~frame[0]) begin
     $display("Failed: Frame:0x%x Tx:0x%x", frame, bits);
@@ -124,7 +125,7 @@ end endtask
 // Test runner
 integer byte;
 always @(negedge sys_rst) begin
-  for (byte = 1; byte < 256; byte = byte + 1) begin
+  for (byte = 0; byte < 256; byte = byte + 1) begin
     // Transmitter test
     transmitter_test(byte);
     

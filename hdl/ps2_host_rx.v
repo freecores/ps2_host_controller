@@ -44,12 +44,12 @@ module ps2_host_rx(
   input  wire sys_rst,
   input  wire ps2_clk_negedge,
   input  wire ps2_data,
-  output wire [7:0] rx_data,
-  output wire ready,
-  output wire error
+  output reg [7:0] rx_data,
+  output reg ready,
+  output reg error
 );
 
-// Read in 11 bit long frame. 12th bit marks end of frame.
+// Read in 11 bit long frame.
 reg [11:0] frame;
 always @(posedge sys_clk)
 begin
@@ -61,14 +61,33 @@ begin
   end
 end
 
-// Return rx_data in most significant bit first order.
-assign rx_data = {frame[2], frame[3], frame[4], frame[5],
-                  frame[6], frame[7], frame[8], frame[9]};
-
 // 12th bit marks end of frame.
-assign ready = frame[11];
+always @(posedge sys_clk)
+begin
+  ready <= (sys_rst) ? 0 : frame[11];
+end
+
+// Return rx_data in most significant bit first order.
+always @(posedge sys_clk)
+begin
+  if (sys_rst) begin
+    rx_data <= 0;
+  end
+  else begin
+    rx_data <= (frame[11]) ? {frame[2], frame[3], frame[4], frame[5],
+                              frame[6], frame[7], frame[8], frame[9]} : rx_data;
+  end
+end
 
 // Check that 1st bit is 0, odd parity bit is correct and last bit is 1.
-assign error = ~(~frame[10] & (~frame[1] == ^frame[9:2]) & frame[0]);
+always @(posedge sys_clk)
+begin
+  if (sys_rst) begin
+    error <= 0;
+  end
+  else begin
+    error <= (frame[11]) ? ~(~frame[10] & (~frame[1] == ^frame[9:2]) & frame[0]) : error;
+  end
+end
 
 endmodule
