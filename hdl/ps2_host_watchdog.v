@@ -48,10 +48,23 @@ module ps2_host_watchdog(
   output wire watchdog_rst
 );
 
+wire ps2_clk_edge = ps2_clk_posedge | ps2_clk_negedge;
+
+reg watchdog_active;
+always @(posedge sys_clk)
+begin
+  if (sys_rst | watchdog_rst | ~(watchdog_active | ps2_clk_edge)) begin
+    watchdog_active = 0;
+  end
+  else begin
+    watchdog_active = 1;
+  end
+end
+
 reg [`T_200_MICROSECONDS_SIZE - 1:0] watchdog_timer;
 always @(posedge sys_clk)
 begin
-  if (sys_rst | watchdog_rst | ps2_clk_posedge | ps2_clk_negedge) begin
+  if (sys_rst | watchdog_rst | ~watchdog_active | ps2_clk_edge) begin
     watchdog_timer <= `T_200_MICROSECONDS;
   end
   else begin
